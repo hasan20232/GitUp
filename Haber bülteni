@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fidyekızık Ana Haber Bülteni</title>
+    <!-- Tailwind CSS ve Inter Fontu yükleniyor -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Açık mavi-gri arka plan */
+            color: #1e3a8a; /* Koyu mavi metin rengi */
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Yuvarlatılmış köşeler */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Yumuşak gölge */
+        }
+        .news-ticker-container {
+            overflow: hidden;
+            white-space: nowrap;
+            background-color: #ef4444; /* Canlı kırmızı */
+            color: white;
+            padding: 0.75rem 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .news-ticker-text {
+            display: inline-block;
+            animation: ticker 25s linear infinite;
+            padding-left: 100%; /* Metnin ekranın sağından başlaması için */
+            font-weight: bold;
+        }
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+        .admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .admin-content {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center">
+
+    <!-- Ana Başlık ve Tarih-Saat Kısmı -->
+    <div class="w-full text-center mb-4">
+        <h1 class="text-4xl md:text-6xl font-extrabold text-[#9d174d] mb-2 drop-shadow-md">Fidyekızık Ana Haber Bülteni</h1>
+        <div class="text-lg md:text-xl font-medium text-blue-800">
+            <span id="current-date"></span>, <span id="current-time"></span>
+        </div>
+    </div>
+    
+    <!-- Real-time Veri Yükleniyor Mesajı -->
+    <div id="loading-message" class="text-xl text-gray-500 mb-4">Veriler yükleniyor...</div>
+
+    <!-- Ana İçerik Alanı -->
+    <div id="content-display" class="container mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 hidden">
+
+        <!-- Sol ve Orta Bölüm -->
+        <div class="lg:col-span-2 flex flex-col gap-8">
+            <!-- Duyurular Bölümü -->
+            <div class="card p-6 md:p-8 bg-gradient-to-br from-emerald-200 to-green-200">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-4">Duyurular</h2>
+                <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="w-full md:w-1/2">
+                        <img id="announcement-image" src="https://placehold.co/600x400/86efac/ffffff?text=DUYURU+FOTO" alt="Duyuru Görseli" class="w-full h-auto rounded-xl shadow-lg">
+                    </div>
+                    <div class="w-full md:w-1/2 text-left">
+                        <h3 id="announcement-title" class="text-xl md:text-2xl font-bold mb-2"></h3>
+                        <p id="announcement-text" class="text-base md:text-lg text-gray-700"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Alanı -->
+            <div class="card p-6 md:p-8 bg-gradient-to-br from-yellow-200 to-orange-200">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-4">Güncel Video</h2>
+                <div id="video-container" class="aspect-w-16 aspect-h-9 w-full">
+                    <!-- Video buraya yerleşecek -->
+                    <iframe id="announcement-video" class="w-full h-96 rounded-xl" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+
+            <!-- Tarihte Bugün Alanı -->
+            <div class="card p-6 md:p-8 bg-gradient-to-br from-purple-200 to-indigo-200">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-4">Tarihte Bugün</h2>
+                <div id="historical-events" class="text-base md:text-lg text-gray-700">
+                    <!-- Tarihi olaylar buraya yerleşecek -->
+                    <ul id="historical-events-list" class="list-disc list-inside space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sağ Bölüm (Yemekçiler ve Müezzinler) -->
+        <div class="lg:col-span-1 flex flex-col gap-8">
+            <!-- Yemekçiler Alanı -->
+            <div class="card p-6 md:p-8 bg-gradient-to-br from-orange-200 to-amber-200">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-4 flex items-center justify-center space-x-2">
+                    <span class="text-3xl">🍴</span>
+                    <span>Yemekçiler</span>
+                    <span class="text-3xl">🍴</span>
+                </h2>
+                <div id="cooks" class="text-base md:text-lg text-gray-700">
+                    <ul id="cooks-list" class="list-disc list-inside space-y-2"></ul>
+                </div>
+            </div>
+
+            <!-- Müezzinler Alanı -->
+            <div class="card p-6 md:p-8 bg-gradient-to-br from-blue-200 to-cyan-200">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-4">Müezzinler</h2>
+                <div id="muezzins" class="text-base md:text-lg text-gray-700">
+                    <ul id="muezzins-list" class="list-disc list-inside space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Kayan Haber Şeridi -->
+    <div class="news-ticker-container">
+        <div id="news-ticker" class="news-ticker-text">
+        </div>
+    </div>
+
+    <!-- Yönetimi Aç Düğmesi (Küçük, köşeye sabit) -->
+    <button onclick="toggleAdminPanel(true)" class="fixed bottom-2 right-4 bg-red-500 text-white text-3xl py-2 px-4 rounded-full shadow-lg z-50 hover:bg-red-600 transition-colors">
+        📓
+    </button>
+    
+
+    <!-- Yönetim Paneli (Modal) -->
+    <div id="admin-panel" class="admin-modal hidden">
+        <div class="admin-content w-full lg:w-2/3">
+            <button onclick="toggleAdminPanel(false)" class="absolute top-4 right-4 bg-gray-200 p-2 rounded-full hover:bg-gray-300 transition-colors text-xl font-bold">
+                &times;
+            </button>
+            <h1 class="text-3xl font-bold text-center mb-6">Yönetim Paneli</h1>
+            
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Duyuru Yönetimi -->
+                <div class="w-full lg:w-1/2 space-y-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-center">Duyuru Yönetimi</h2>
+                    <div>
+                        <label for="image-url" class="block text-gray-700 font-bold mb-2">Duyuru Fotoğrafı (URL)</label>
+                        <input type="text" id="image-url" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Fotoğraf URL'sini buraya yapıştırın">
+                        <button onclick="updateData('announcementImageUrl', document.getElementById('image-url').value)" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Fotoğrafı Güncelle
+                        </button>
+                    </div>
+                    <div>
+                        <label for="announcement-text-input" class="block text-gray-700 font-bold mb-2">Duyuru Metni</label>
+                        <textarea id="announcement-text-input" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Yeni duyuru metnini buraya yazın"></textarea>
+                        <button onclick="updateData('announcementText', document.getElementById('announcement-text-input').value)" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Metni Güncelle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Video ve Kayan Yazı Yönetimi -->
+                <div class="w-full lg:w-1/2 space-y-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-center">Video ve Kayan Yazı Yönetimi</h2>
+                    <div>
+                        <label for="video-url-input" class="block text-gray-700 font-bold mb-2">Video URL'si (YouTube, vb.)</label>
+                        <input type="text" id="video-url-input" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Video linkini buraya yapıştırın">
+                        <button onclick="updateVideo()" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Videoyu Güncelle
+                        </button>
+                    </div>
+                    <div>
+                        <label for="ticker-text-input" class="block text-gray-700 font-bold mb-2">Kayan Yazı Metni</label>
+                        <textarea id="ticker-text-input" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Yeni kayan yazıyı buraya yazın"></textarea>
+                        <button onclick="updateData('tickerText', document.getElementById('ticker-text-input').value)" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Kayan Yazıyı Güncelle
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-8 mt-8">
+                <!-- Tarihte Bugün, Yemekçiler ve Müezzinler Yönetimi -->
+                <div class="w-full space-y-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-center">Tarihte Bugün, Yemekçiler ve Müezzinler Yönetimi</h2>
+                    <div>
+                        <label for="historical-events-input" class="block text-gray-700 font-bold mb-2">Tarihi Olaylar (Her satıra bir olay)</label>
+                        <textarea id="historical-events-input" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="5" placeholder="Örnek:&#10;1923 - Türkiye Cumhuriyeti kuruldu.&#10;1925 - ..."></textarea>
+                        <button onclick="updateData('historicalEventsText', document.getElementById('historical-events-input').value)" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Olayları Güncelle
+                        </button>
+                    </div>
+                    <div>
+                        <label for="cooks-input" class="block text-gray-700 font-bold mb-2">Yemekçiler (Her satıra bir isim)</label>
+                        <textarea id="cooks-input" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Örnek:&#10;Ayşe Hanım&#10;Mehmet Bey"></textarea>
+                        <button onclick="updateData('cooksText', document.getElementById('cooks-input').value)" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Yemekçileri Güncelle
+                        </button>
+                    </div>
+                    <div>
+                        <label for="muezzins-input" class="block text-gray-700 font-bold mb-2">Müezzinler (Her satıra bir isim)</label>
+                        <textarea id="muezzins-input" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Örnek:&#10;Ali Hocaoğlu&#10;Veli Bey"></textarea>
+                        <button onclick="updateData('muezzinsText', document.getElementById('muezzins-input').value)" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                            Müezzinleri Güncelle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDK'leri yüklüyor -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Firebase ve Uygulama ID'si
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        
+        // Firestore'a veri yazmak için belge yolunu tanımlıyoruz
+        const dataPath = `artifacts/${appId}/public/data/news-data`;
+        const newsDocRef = doc(getFirestore(initializeApp(firebaseConfig)), dataPath, "live-data");
+        
+        let db, auth;
+        const videoElement = document.getElementById('announcement-video');
+        const historicalEventsList = document.getElementById('historical-events-list');
+        const cooksList = document.getElementById('cooks-list');
+        const muezzinsList = document.getElementById('muezzins-list');
+
+        // Sayfa yüklendiğinde Firebase ve Auth başlatılıyor
+        window.onload = async () => {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            // Kimlik doğrulama işlemi yapılıyor
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Kimlik doğrulama hatası:", error);
+                document.getElementById('loading-message').textContent = "Uygulama başlatılırken bir hata oluştu.";
+                return;
+            }
+
+            // Real-time dinleyiciyi başlatıyoruz
+            onSnapshot(newsDocRef, (docSnap) => {
+                const loadingMessage = document.getElementById('loading-message');
+                const contentDisplay = document.getElementById('content-display');
+                
+                loadingMessage.classList.add('hidden');
+                contentDisplay.classList.remove('hidden');
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Verileri HTML elemanlarına yerleştiriyoruz
+                    document.getElementById('announcement-image').src = data.announcementImageUrl || 'https://placehold.co/600x400/86efac/ffffff?text=DUYURU+FOTO';
+                    document.getElementById('announcement-title').textContent = "Yeni Duyuru";
+                    document.getElementById('announcement-text').textContent = data.announcementText || "Buraya duyuru metni gelecek.";
+                    document.getElementById('news-ticker').textContent = data.tickerText || "📢📢📢 Fidyekızık Ana Haber Bülteni'ne Hoş Geldiniz! 📢📢📢";
+                    
+                    // Video URL'sini güncelliyoruz
+                    if (data.videoUrl) {
+                        const embedUrl = getEmbedUrl(data.videoUrl);
+                        videoElement.src = embedUrl;
+                    } else {
+                        videoElement.src = "";
+                    }
+
+                    // Tarihi olayları güncelliyoruz
+                    const historicalEventsText = data.historicalEventsText || '';
+                    const eventsArray = historicalEventsText.split('\n').filter(event => event.trim() !== '');
+                    historicalEventsList.innerHTML = '';
+                    if (eventsArray.length > 0) {
+                        eventsArray.forEach(eventText => {
+                            const li = document.createElement('li');
+                            li.textContent = eventText.trim();
+                            historicalEventsList.appendChild(li);
+                        });
+                    } else {
+                        historicalEventsList.innerHTML = '<li>Bugün için önemli bir olay bulunmamaktadır.</li>';
+                    }
+
+                    // Yemekçileri güncelliyoruz
+                    const cooksText = data.cooksText || '';
+                    const cooksArray = cooksText.split('\n').filter(name => name.trim() !== '');
+                    cooksList.innerHTML = '';
+                    if (cooksArray.length > 0) {
+                        cooksArray.forEach(nameText => {
+                            const li = document.createElement('li');
+                            li.textContent = nameText.trim();
+                            cooksList.appendChild(li);
+                        });
+                    } else {
+                        cooksList.innerHTML = '<li>Görevli yemekçi bulunmamaktadır.</li>';
+                    }
+
+                    // Müezzinleri güncelliyoruz
+                    const muezzinsText = data.muezzinsText || '';
+                    const muezzinsArray = muezzinsText.split('\n').filter(name => name.trim() !== '');
+                    muezzinsList.innerHTML = '';
+                    if (muezzinsArray.length > 0) {
+                        muezzinsArray.forEach(nameText => {
+                            const li = document.createElement('li');
+                            li.textContent = nameText.trim();
+                            muezzinsList.appendChild(li);
+                        });
+                    } else {
+                        muezzinsList.innerHTML = '<li>Görevli müezzin bulunmamaktadır.</li>';
+                    }
+
+                    // Giriş alanlarını güncelliyoruz
+                    document.getElementById('image-url').value = data.announcementImageUrl || '';
+                    document.getElementById('announcement-text-input').value = data.announcementText || '';
+                    document.getElementById('ticker-text-input').value = data.tickerText || '';
+                    document.getElementById('video-url-input').value = data.videoUrl || '';
+                    document.getElementById('historical-events-input').value = data.historicalEventsText || '';
+                    document.getElementById('cooks-input').value = data.cooksText || '';
+                    document.getElementById('muezzins-input').value = data.muezzinsText || '';
+
+
+                } else {
+                    // Belge yoksa başlangıç verilerini oluştur
+                    setDoc(newsDocRef, {
+                        announcementImageUrl: 'https://placehold.co/600x400/86efac/ffffff?
